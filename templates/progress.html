@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Progression du scraping{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cog fa-spin me-2"></i>Scraping en cours...
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h4 id="site-name">{{ status.site.title() if status.site else 'Site' }}</h4>
+                    <p class="text-muted" id="current-status">{{ status.current_character or 'Initialisation...' }}</p>
+                </div>
+                
+                <div class="progress mb-3" style="height: 25px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         id="progress-bar"
+                         role="progressbar" 
+                         style="width: {{ (status.progress / status.total * 100) if status.total > 0 else 0 }}%">
+                        <span id="progress-text">
+                            {{ status.progress }}/{{ status.total }} 
+                            ({{ "%.1f"|format((status.progress / status.total * 100) if status.total > 0 else 0) }}%)
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    {% if status.is_running %}
+                        <div class="spinner-border text-primary me-2" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <span>Scraping en cours... Veuillez patienter</span>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Scraping terminé !
+                        </div>
+                        <a href="{{ url_for('view_characters') }}" class="btn btn-success">
+                            <i class="fas fa-eye me-2"></i>Voir les résultats
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateProgress() {
+    fetch('/api/progress')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('site-name').textContent = data.site ? data.site.charAt(0).toUpperCase() + data.site.slice(1) : 'Site';
+            document.getElementById('current-status').textContent = data.current_character || 'En attente...';
+            
+            const percentage = data.total > 0 ? (data.progress / data.total * 100) : 0;
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = `${data.progress}/${data.total} (${percentage.toFixed(1)}%)`;
+            
+            if (!data.is_running) {
+                // Scraping terminé, recharger la page pour afficher le bouton "Voir les résultats"
+                setTimeout(() => location.reload(), 2000);
+            }
+        })
+        .catch(error => console.error('Erreur:', error));
+}
+
+// Mettre à jour la progression toutes les 2 secondes
+{% if status.is_running %}
+setInterval(updateProgress, 2000);
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Scrapeur Fandom - Accueil{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-spider text-primary"></i>
+                Scrapeur Fandom Universel
+            </h1>
+            <p class="lead">Extrayez et comparez les personnages de vos univers Fandom préférés</p>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-play me-2"></i>Démarrer un nouveau scraping
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('start_scraping') }}" id="scrapingForm">
+                    <!-- Options de sélection -->
+                    <div class="mb-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="input_type" id="preset_site" value="preset" checked>
+                            <label class="form-check-label" for="preset_site">
+                                Sites prédéfinis
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="input_type" id="custom_url" value="custom">
+                            <label class="form-check-label" for="custom_url">
+                                URL personnalisée
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Sites prédéfinis -->
+                    <div class="mb-3" id="preset-section">
+                        <label for="site" class="form-label">Sélectionnez un site Fandom :</label>
+                        <select class="form-select" id="site" name="site">
+                            <option value="">Choisissez un site...</option>
+                            {% for site in sites %}
+                                <option value="{{ site }}">
+                                    {{ site.title() }}.fandom.com
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- URL personnalisée -->
+                    <div class="mb-3" id="custom-section" style="display: none;">
+                        <label for="custom_site_url" class="form-label">URL du site Fandom :</label>
+                        <input type="url" class="form-control" id="custom_site_url" name="custom_site_url" 
+                               placeholder="https://exemple.fandom.com">
+                        <div class="form-text">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Exemples : https://pokemon.fandom.com, https://naruto.fandom.com, https://marvel.fandom.com
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="max_characters" class="form-label">Nombre maximum de personnages :</label>
+                        <input type="number" class="form-control" id="max_characters" name="max_characters" 
+                               value="20" min="1" max="100" required>
+                        <div class="form-text">Recommandé : 20-50 personnages pour des résultats optimaux</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-rocket me-2"></i>Lancer le scraping
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-download fa-3x text-primary mb-3"></i>
+                        <h5>Extraction automatique</h5>
+                        <p class="text-muted">Récupère automatiquement les données des personnages depuis les wikis Fandom</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-id-card fa-3x text-success mb-3"></i>
+                        <h5>Affichage en cartes</h5>
+                        <p class="text-muted">Présentation claire et organisée des personnages sous forme de cartes</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-balance-scale fa-3x text-warning mb-3"></i>
+                        <h5>Comparaison facile</h5>
+                        <p class="text-muted">Comparez plusieurs personnages côte à côte pour analyser leurs différences</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Gestion du basculement entre sites prédéfinis et URL personnalisée
+document.addEventListener('DOMContentLoaded', function() {
+    const presetRadio = document.getElementById('preset_site');
+    const customRadio = document.getElementById('custom_url');
+    const presetSection = document.getElementById('preset-section');
+    const customSection = document.getElementById('custom-section');
+    const siteSelect = document.getElementById('site');
+    const customUrlInput = document.getElementById('custom_site_url');
+    const form = document.getElementById('scrapingForm');
+    
+    function toggleSections() {
+        if (presetRadio.checked) {
+            presetSection.style.display = 'block';
+            customSection.style.display = 'none';
+            siteSelect.required = true;
+            customUrlInput.required = false;
+            customUrlInput.value = '';
+        } else {
+            presetSection.style.display = 'none';
+            customSection.style.display = 'block';
+            siteSelect.required = false;
+            customUrlInput.required = true;
+            siteSelect.value = '';
+        }
+    }
+    
+    presetRadio.addEventListener('change', toggleSections);
+    customRadio.addEventListener('change', toggleSections);
+    
+    // Validation personnalisée pour l'URL Fandom
+    customUrlInput.addEventListener('input', function() {
+        const url = this.value.toLowerCase();
+        if (url && !url.includes('fandom.com')) {
+            this.setCustomValidity('Veuillez entrer une URL Fandom valide (contenant "fandom.com")');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+    
+    // Validation du formulaire avant soumission
+    form.addEventListener('submit', function(e) {
+        if (customRadio.checked) {
+            const url = customUrlInput.value.toLowerCase();
+            if (!url.includes('fandom.com')) {
+                e.preventDefault();
+                alert('Veuillez entrer une URL Fandom valide (ex: https://pokemon.fandom.com)');
+                return false;
+            }
+        } else if (presetRadio.checked) {
+            if (!siteSelect.value) {
+                e.preventDefault();
+                alert('Veuillez sélectionner un site prédéfini');
+                return false;
+            }
+        }
+    });
+    
+    // Auto-complétion intelligente
+    customUrlInput.addEventListener('blur', function() {
+        let url = this.value.trim();
+        if (url && !url.startsWith('http')) {
+            // Si l'utilisateur tape juste "pokemon", on complète automatiquement
+            if (!url.includes('.')) {
+                url = `https://${url}.fandom.com`;
+                this.value = url;
+            } else if (!url.startsWith('https://')) {
+                url = `https://${url}`;
+                this.value = url;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
